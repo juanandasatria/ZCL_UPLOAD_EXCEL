@@ -1,0 +1,19 @@
+I_INPUT	TYPE ANY
+value( R_OUTPUT )	TYPE PS_PSP_PRO
+
+
+METHOD convert_in_project.
+    CALL FUNCTION 'CONVERSION_EXIT_KONPD_INPUT'
+      EXPORTING
+        input     = i_input
+      IMPORTING
+        output    = r_output
+*       PROJWA    =
+      EXCEPTIONS
+        not_found = 1
+        OTHERS    = 2.
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+  ENDMETHOD.
