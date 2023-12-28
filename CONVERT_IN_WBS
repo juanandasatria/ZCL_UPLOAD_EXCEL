@@ -1,0 +1,18 @@
+I_WBS	TYPE ANY	
+value( R_WBS )	TYPE PS_PSP_ELE
+
+  METHOD convert_in_wbs.
+
+    CALL FUNCTION 'CONVERSION_EXIT_ABPSP_INPUT'
+      EXPORTING
+        input     = i_wbs
+      IMPORTING
+        output    = r_wbs
+      EXCEPTIONS
+        not_found = 1
+        OTHERS    = 2.
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+  ENDMETHOD.
