@@ -1,0 +1,32 @@
+value( R_FILENAME )	TYPE STRING
+
+f4_filename.
+    DATA: lt_filetable TYPE filetable,
+          ls_filetable TYPE file_table,
+          lv_subrc     TYPE i.
+
+    CALL METHOD cl_gui_frontend_services=>file_open_dialog
+      EXPORTING
+        file_filter             = 'Excel Files (*.XLSX)|*.XLSX|' ##NO_TEXT " cl_gui_frontend_services=>filetype_excel "
+      CHANGING
+        file_table              = lt_filetable
+        rc                      = lv_subrc
+      EXCEPTIONS
+        file_open_dialog_failed = 1
+        cntl_error              = 2
+        error_no_gui            = 3
+        not_supported_by_gui    = 4
+        OTHERS                  = 5.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+                 WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 RAISING error.
+      EXIT.
+    ELSE.
+      READ TABLE lt_filetable INTO ls_filetable INDEX 1.
+      IF sy-subrc EQ 0.
+        r_filename = ls_filetable-filename.
+      ELSE.
+        " do nothing
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
