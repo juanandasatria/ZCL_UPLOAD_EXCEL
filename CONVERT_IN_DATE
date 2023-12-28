@@ -1,0 +1,49 @@
+I_DATE	TYPE ANY
+value( R_DATE )	TYPE DATUM
+
+
+METHOD CONVERT_IN_DATE.
+    DATA: lv_convert_date(10) TYPE c.
+    CHECK i_date IS NOT INITIAL.
+    lv_convert_date = i_date .
+    "date format YYYY/MM/DD
+    FIND REGEX '^\d{4}[/|-]\d{1,2}[/|-]\d{1,2}$' IN lv_convert_date ##REGEX_POSIX.
+    IF sy-subrc = 0.
+      CALL FUNCTION '/SAPDMC/LSM_DATE_CONVERT'
+        EXPORTING
+          date_in             = lv_convert_date
+          date_format_in      = 'DYMD'
+          to_output_format    = ' '
+          to_internal_format  = 'X'
+        IMPORTING
+          date_out            = lv_convert_date
+        EXCEPTIONS
+          illegal_date        = 1
+          illegal_date_format = 2
+          no_user_date_format = 3
+          OTHERS              = 4.
+    ELSE.
+      " date format DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+      FIND REGEX '^\d{1,2}[/|-|.]\d{1,2}[/|-|.]\d{4}$' IN lv_convert_date ##REGEX_POSIX.
+      IF sy-subrc = 0.
+        CALL FUNCTION '/SAPDMC/LSM_DATE_CONVERT'
+          EXPORTING
+            date_in             = lv_convert_date
+            date_format_in      = 'DDMY'
+            to_output_format    = ' '
+            to_internal_format  = 'X'
+          IMPORTING
+            date_out            = lv_convert_date
+          EXCEPTIONS
+            illegal_date        = 1
+            illegal_date_format = 2
+            no_user_date_format = 3
+            OTHERS              = 4.
+      ENDIF.
+    ENDIF.
+    IF sy-subrc = 0.
+      r_date = lv_convert_date .
+    ELSE.
+      CLEAR r_date.
+    ENDIF.
+  ENDMETHOD.
