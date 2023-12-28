@@ -1,0 +1,92 @@
+I_DESCRIPTION	TYPE ANY
+
+METHOD download_template.
+    " File should saved in tcode : OAOR
+
+    DATA: ld_fname     TYPE string,
+          ld_def_fname TYPE string,
+          lv_filename  TYPE string,
+          lv_fullpath  TYPE string,
+          lv_path      TYPE string,
+          ld_action    TYPE i.
+
+    DATA: lt_files        TYPE sbdst_files,
+          l_iref_template TYPE REF TO cl_bds_document_set,
+          lt_signature    TYPE sbdst_signature.
+
+    ld_def_fname = 'Template.xlsx'.
+
+    CALL METHOD cl_gui_frontend_services=>file_save_dialog
+      EXPORTING
+        default_extension         = 'XLSX'
+        default_file_name         = ld_def_fname
+      CHANGING
+        filename                  = lv_filename
+        path                      = lv_path
+        fullpath                  = lv_fullpath
+        user_action               = ld_action
+      EXCEPTIONS
+        cntl_error                = 1
+        error_no_gui              = 2
+        not_supported_by_gui      = 3
+        invalid_default_file_name = 4
+        OTHERS                    = 5.
+    IF sy-subrc <> 0.
+*   Implement suitable error handling here
+    ENDIF.
+
+
+    IF ld_action < 4.
+
+      CREATE OBJECT l_iref_template.
+
+      APPEND VALUE #( prop_name = 'DESCRIPTION' prop_value = CONV bds_propva( i_description ) ) TO lt_signature.
+
+      CALL METHOD l_iref_template->get_info
+        EXPORTING
+          classname       = 'SOFFICEINTEGRATION'                 " Class Name
+          classtype       = 'OT'                 " Class Type
+        CHANGING
+          signature       = lt_signature                  " Signature Table
+        EXCEPTIONS
+          nothing_found   = 1                " Nothing Found
+          error_kpro      = 2                " KPro Error
+          internal_error  = 3                " Internal Error
+          parameter_error = 4                " Error in transfer parameters
+          not_authorized  = 5                " No Authorization
+          not_allowed     = 6                " Action not permitted
+          OTHERS          = 7.
+      IF sy-subrc <> 0.
+        MESSAGE ID sy-msgid TYPE 'S' NUMBER sy-msgno
+          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4
+          DISPLAY LIKE 'E'.
+        LEAVE LIST-PROCESSING.
+      ENDIF.
+
+      APPEND VALUE #( comp_count = 1 directory = lv_path mimetype = 'XLSX' filename = lv_filename ) TO lt_files.
+
+      CALL METHOD l_iref_template->get_with_files
+        EXPORTING
+          classname       = 'SOFFICEINTEGRATION'                " Class Name
+          classtype       = 'OT'                " Class Type
+        CHANGING
+          files           = lt_files                " File Table
+          signature       = lt_signature                  " Signature Table
+        EXCEPTIONS
+          nothing_found   = 1                " Nothing Found
+          error_kpro      = 2                " KPro Error
+          internal_error  = 3                " Internal Error
+          parameter_error = 4                " Error in transfer parameters
+          not_authorized  = 5                " No Authorization
+          not_allowed     = 6                " Action not permitted
+          OTHERS          = 7.
+      IF sy-subrc <> 0.
+        MESSAGE ID sy-msgid TYPE 'S' NUMBER sy-msgno
+          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4
+          DISPLAY LIKE 'E'.
+        LEAVE LIST-PROCESSING.
+      ENDIF.
+*
+    ENDIF.
+
+  ENDMETHOD.
