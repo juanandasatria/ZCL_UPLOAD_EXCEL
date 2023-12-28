@@ -1,0 +1,18 @@
+I_UNIT	TYPE ANY
+value( R_UNIT )	TYPE MEINS
+
+  METHOD convert_in_unit.
+    CALL FUNCTION 'CONVERSION_EXIT_CUNIT_INPUT'
+      EXPORTING
+        input          = i_unit
+*       LANGUAGE       = SY-LANGU
+      IMPORTING
+        output         = r_unit
+      EXCEPTIONS
+        unit_not_found = 1
+        OTHERS         = 2.
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+  ENDMETHOD.
