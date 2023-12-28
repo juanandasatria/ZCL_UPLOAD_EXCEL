@@ -1,0 +1,78 @@
+I_FILE	TYPE ANY
+I_INITIAL_ROW	TYPE I
+I_MAX_COL	TYPE I OPTIONAL
+I_SHEET	TYPE I  DEFAULT 1
+CT_DATA	TYPE ANY TABLE
+
+
+METHOD convert_xlsx_to_itab.
+    DATA:
+      lv_filename_str TYPE string,
+      lv_err_msg      TYPE string,
+      lo_exc          TYPE REF TO cx_fdt_excel_core,
+      lt_worksheets   TYPE STANDARD TABLE OF string,
+      lo_data_raw     TYPE REF TO data,
+      lo_excel_ref    TYPE REF TO cl_fdt_xl_spreadsheet.
+    FIELD-SYMBOLS:
+      <lft_data_raw> TYPE STANDARD TABLE,
+      <lft_data>     TYPE STANDARD TABLE.
+
+    ASSIGN ct_data TO <lft_data>.
+
+    DATA(lv_xstring) = convert_xlsx_to_xstring( i_file ).
+    IF sy-subrc NE 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno DISPLAY LIKE 'E'
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 RAISING error_convert.
+      EXIT.
+    ENDIF.
+
+    TRY.
+        CREATE OBJECT lo_excel_ref
+          EXPORTING
+            document_name = lv_filename_str
+            xdocument     = lv_xstring.
+        IF lo_excel_ref IS NOT INITIAL.
+          lo_excel_ref->if_fdt_doc_spreadsheet~get_worksheet_names(
+            IMPORTING
+              worksheet_names = lt_worksheets
+        ).
+        ENDIF.
+      CATCH cx_fdt_excel_core INTO lo_exc.
+        lv_err_msg = lo_exc->get_text( ).
+        MESSAGE lv_err_msg TYPE 'S' DISPLAY LIKE 'E' RAISING error.
+        EXIT.
+    ENDTRY.
+
+
+    IF lt_worksheets IS INITIAL.
+      MESSAGE e001(zca) RAISING error. " No worksheet detected
+      EXIT.
+    ENDIF.
+
+    " reading all worksheets
+    READ TABLE lt_worksheets INTO DATA(lv_worksheet) INDEX i_sheet.
+    IF sy-subrc EQ 0.
+      lo_data_raw = lo_excel_ref->if_fdt_doc_spreadsheet~get_itab_from_worksheet( lv_worksheet ).
+      ASSIGN lo_data_raw->* TO <lft_data_raw>.
+      IF sy-subrc EQ 0.
+        LOOP AT <lft_data_raw> ASSIGNING FIELD-SYMBOL(<lfs_data_raw>) FROM i_initial_row.
+          APPEND INITIAL LINE TO <lft_data> ASSIGNING FIELD-SYMBOL(<lfs_data>).
+          DO.
+            IF i_max_col IS NOT INITIAL AND i_max_col < sy-index.
+              EXIT.
+            ENDIF.
+            ASSIGN COMPONENT sy-index OF STRUCTURE <lfs_data_raw> TO FIELD-SYMBOL(<lfs_raw>).
+            IF sy-subrc NE 0.
+              EXIT.
+            ELSE.
+              ASSIGN COMPONENT sy-index OF STRUCTURE <lfs_data> TO FIELD-SYMBOL(<lfs_dest>).
+              IF sy-subrc EQ 0.
+                <lfs_dest> = <lfs_raw>.
+              ENDIF.
+            ENDIF.
+          ENDDO.
+        ENDLOOP.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
